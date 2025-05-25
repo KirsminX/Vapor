@@ -1,0 +1,20 @@
+# vapor 的翻译对照表
+# vapor's translation table
+
+_version: 2
+
+debug:
+  zh-cn: 调试
+  en: Debug
+
+info:
+  zh-cn: 信息
+  en: Info
+
+warning:
+    zh-cn: 警告
+    en: Warn
+
+error:
+  zh-cn: 错误
+  en: Error
