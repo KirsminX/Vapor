@@ -1,5 +1,4 @@
-// src/logger.rs
-use chrono::{Local, Utc};
+use chrono::{Local, TimeZone};
 use chrono_tz::Tz;
 use colored::Colorize;
 use lazy_static::lazy_static;
@@ -7,79 +6,120 @@ use rust_i18n::t;
 use std::sync::Mutex;
 
 lazy_static! {
-    static ref LOGGER: Mutex<Logger> = Mutex::new(Logger::new());
+    pub static ref LOGGER: Mutex<Logger> = Mutex::new(Logger::new());
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum LogLevel {
-    Error,
-    Warning,
-    Info,
     Debug,
+    Info,
+    Warning,
+    Error,
 }
 
 pub struct Logger {
     timezone: Option<Tz>,
+    language: Option<String>,
+    min_level: LogLevel,
 }
 
 impl Logger {
     fn new() -> Self {
-        Self { timezone: None }
+        Self {
+            timezone: None,
+            language: Some("en".to_string()),
+            min_level: LogLevel::Debug,
+        }
+    }
+
+    pub fn set_min_level(&mut self, level: LogLevel) {
+        self.min_level = level;
     }
 
     pub fn set_timezone(&mut self, tz: Tz) {
         self.timezone = Some(tz);
     }
 
+    pub fn set_language(&mut self, lang: &str) {
+        rust_i18n::set_locale(lang);
+        self.language = Some(lang.to_string());
+    }
+
+    #[allow(dead_code)]
     fn format_time(&self) -> String {
-        // 修改为分离处理时区分支，避免DateTime类型冲突
         match self.timezone {
             Some(ref tz) => {
-                let dt = Utc::now().with_timezone(tz);
-                dt.format("%Y-%-m-%-d").to_string()
+                let dt = tz.from_local_datetime(&Local::now().naive_local()).unwrap();
+                dt.format("%Y/%-m/%-d %H:%M:%S").to_string()
             }
             None => {
                 let dt = Local::now();
-                dt.format("%Y-%-m-%-d").to_string()
+                dt.format("%Y/%-m/%-d %H:%M:%S").to_string()
             }
         }
     }
 
-    fn log(&self, level: LogLevel, key: &str) {
+    #[allow(dead_code)]
+    pub fn log(&self, level: LogLevel, key: &str) {
+        if level < self.min_level {
+            return;
+        }
+
         let time = self.format_time();
 
         let (level_color, message_color, level_str) = match level {
             LogLevel::Error => (
-                (255, 46, 99), // 红色 #ff2e63
-                (255, 46, 99), // 红色 #ff2e63
+                (255, 46, 99),
+                (255, 46, 99),
                 t!("error").to_string(),
             ),
             LogLevel::Warning => (
-                (255, 222, 125), // 黄色 #ffde7d
-                (255, 222, 125), // 黄色 #ffde7d
+                (249, 237, 105),
+                (249, 237, 105),
                 t!("warning").to_string(),
             ),
             LogLevel::Info => (
-                (48, 227, 202),  // 蓝色 #30e3ca
-                (248, 243, 212), // 白色 #f8f3d4
+                (48, 227, 202),
+                (248, 243, 212),
                 t!("info").to_string(),
             ),
             LogLevel::Debug => (
-                (82, 97, 107), // 灰色 #52616b
-                (82, 97, 107), // 灰色 #52616b
+                (82, 97, 107),
+                (82, 97, 107),
                 t!("debug").to_string(),
             ),
         };
 
-        let level_display = level_str.truecolor(level_color.0, level_color.1, level_color.2);
+        let level_display = format!("[{}] ", level_str).truecolor(level_color.0, level_color.1, level_color.2);
         let message = t!(key).truecolor(message_color.0, message_color.1, message_color.2);
 
-        println!("{} [{}] {}", time, level_display, message);
+        println!("{} {}{}", time, level_display, message);
     }
 }
 
-pub fn set_timezone(tz: Tz) {
-    LOGGER.lock().unwrap().set_timezone(tz);
+#[macro_export]
+macro_rules! tz {
+    ($tz_str:expr) => {{
+        use std::str::FromStr;
+        chrono_tz::Tz::from_str($tz_str).unwrap()
+    }};
+}
+
+#[macro_export]
+macro_rules! init_logger {
+    ( 
+        min_level = $level:expr,
+        language = $lang:expr,
+        timezone = $tz_str:expr $(,)?
+    ) => {
+        {
+            let mut logger = $crate::logger::LOGGER.lock().unwrap();
+            logger.set_min_level($level);
+            logger.set_language($lang);
+            let tz = $crate::tz!($tz_str);
+            logger.set_timezone(tz);
+        }
+    };
 }
 
 #[macro_export]
