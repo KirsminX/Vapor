@@ -45,7 +45,6 @@ impl Logger {
         self.language = Some(lang.to_string());
     }
 
-    #[allow(dead_code)]
     fn format_time(&self) -> String {
         match self.timezone {
             Some(ref tz) => {
@@ -59,7 +58,6 @@ impl Logger {
         }
     }
 
-    #[allow(dead_code)]
     pub fn log(&self, level: LogLevel, key: &str) {
         if level < self.min_level {
             return;
@@ -80,7 +78,7 @@ impl Logger {
             ),
             LogLevel::Info => (
                 (48, 227, 202),
-                (248, 243, 212),
+                (255, 255, 255),
                 t!("info").to_string(),
             ),
             LogLevel::Debug => (
@@ -91,9 +89,18 @@ impl Logger {
         };
 
         let level_display = format!("[{}] ", level_str).truecolor(level_color.0, level_color.1, level_color.2);
-        let message = t!(key).truecolor(message_color.0, message_color.1, message_color.2);
 
-        println!("{} {}{}", time, level_display, message);
+        let raw_message = t!(key);
+        let final_message = if raw_message == key {
+            let lang = self.language.as_ref().unwrap();
+            let tz_str = self.timezone.as_ref().map(|tz| tz.name()).unwrap_or("unknown");
+            format!("翻译失败！Translate Failed! | 语言 Lang {} | 时区 Tz {} | 内容 Value {}", lang, tz_str, key)
+        } else {
+            raw_message.into_owned()
+        };
+        let colored_message = final_message.truecolor(message_color.0, message_color.1, message_color.2);
+
+        println!("{} {}{}", time, level_display, colored_message);
     }
 }
 
@@ -101,7 +108,7 @@ impl Logger {
 macro_rules! tz {
     ($tz_str:expr) => {{
         use std::str::FromStr;
-        chrono_tz::Tz::from_str($tz_str).unwrap()
+        chrono_tz::Tz::from_str($tz_str).unwrap_or_else(|_| panic!("TimeZoneError: Invalid time zone: {}", $tz_str))
     }};
 }
 
