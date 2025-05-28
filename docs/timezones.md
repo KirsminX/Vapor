@@ -1,8 +1,8 @@
-<div style="text-align: right;">简体中文〔本页〕 | English〔 [Check here to change language](timezones-en.md) 〕</div>
+<p align="right">简体中文〔本页〕 | English〔 [Check here to change language](timezones-en.md) 〕</p>
 
-<div style="text-align: center">
+<p align="center">
 # 时区列表
-</div>
+</p>
 
 Vapor 使用 IANA 时区列表，以下是可选的列表。
 
