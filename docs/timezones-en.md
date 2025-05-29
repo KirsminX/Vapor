@@ -1,14 +1,14 @@
-<p align="right">
+<div align="right">
 
-English (Current Page) | 简体中文 [点击此处切换](./timezones.md)
+English (Current Page) | [简体中文](./timezones.md)
 
-</p>
+</div>
 
-<p align="center">
+<div align="center">
 
 # Time Zones List
 
-</p>
+</div>
 
 Vapor uses IANA time zone database. Below is the list of available time zones.
 
